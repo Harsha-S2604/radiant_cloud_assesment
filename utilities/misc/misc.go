@@ -39,47 +39,21 @@ func CheckUserExistById(db *mongo.Database, userId string) (bool) {
 	return true
 }
 
-func CheckGroupExist(db *mongo.Database, groupName string) (bool, primitive.ObjectID) {
+func CheckGroupExist(db *mongo.Database, groupName string) (bool) {
 	var result primitive.M 
 	resultErr:= db.Collection("groups").FindOne(context.TODO(), bson.M{"group_name": groupName}).Decode(&result)
 
-	idStr := fmt.Sprintf("%v", result["_id"])
-	objectId, objectIdErr := primitive.ObjectIDFromHex(idStr)
-	if objectIdErr != nil{
-		return false,  objectId
-	}
-
 	if resultErr != nil {
-		return false, objectId
+		fmt.Println("result error", resultErr.Error())
+		return false
 	}
 
 	if result["group_name"] == "" {
-		return false, objectId
+		fmt.Println("result error")
+		return false
 	}
 
 	
 
-	return true, objectId
-}
-
-func CheckUserInTheGroup(db *mongo.Database, groupName string, userId string) (bool) {
-	var result models.Users 
-	resultErr:= db.Collection("users").FindOne(context.TODO(), bson.M{"userid": userId}).Decode(&result)
-	if resultErr != nil {
-		return false
-	}
-
-	groups := result.Groups
-
-	for _, val := range groups {
-		fmt.Println(val)
-	}
-
-	for i := 0; i < len(groups); i++ {
-		if groups[i].GroupName == groupName {
-			return true
-		}  
-	}
-
-	return false
+	return true
 }

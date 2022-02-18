@@ -33,7 +33,6 @@ func AddUserHandler(db *mongo.Database) gin.HandlerFunc {
 				"first_name": "test",
 				"last_name": "user",
 				"email": "test@gmail.com",
-				"groups": []
 			}
 		*/
 		var user models.Users
@@ -151,30 +150,10 @@ func UpdateUserHandler(db *mongo.Database) gin.HandlerFunc {
 			updateUserObj.Email = userFromDB.Email
 		}
 
-		var groupId primitive.ObjectID
-		var isGroupExist bool
-		var groups []models.Groups
-		if updateUserObj.GroupName != "" {
-			isGroupExist, groupId = misc.CheckGroupExist(db, updateUserObj.GroupName)
-			if isGroupExist {
-				isUserInTheGroup := misc.CheckUserInTheGroup(db, updateUserObj.GroupName, userId)
-				if !isUserInTheGroup {
-					groups = userFromDB.Groups
-					groups = append(groups, models.Groups{
-						groupId,
-						updateUserObj.GroupName,
-					})
-				}
-			}
-		}
-
-		if len(groups) == 0 {
-			groups = userFromDB.Groups
-		}
 		updateResult, updateErr := db.Collection("users").UpdateOne(
 			context.TODO(), bson.M{"userid": userId},
 			bson.D{
-				{"$set", bson.D{{"groups", groups},
+				{"$set", bson.D{
 				{"first_name", updateUserObj.FirstName},
 				{"last_name", updateUserObj.LastName},
 				{"email", updateUserObj.Email}}},
