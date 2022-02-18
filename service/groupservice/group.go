@@ -3,7 +3,6 @@ package groupservice
 import (
 	"net/http"
 	"context"
-	"log"
 
 	"radiant_cloud_assesment/models"
 	"radiant_cloud_assesment/utilities/validations"

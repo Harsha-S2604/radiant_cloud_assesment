@@ -3,7 +3,7 @@ package routes
 import (
 	"testing"
 
-	"genz_server/config/db"
+	"radiant_cloud_assesment/config/db"
 
 	"github.com/gin-gonic/gin"
 )
