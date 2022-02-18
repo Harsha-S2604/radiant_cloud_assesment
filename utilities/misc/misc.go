@@ -57,3 +57,19 @@ func CheckGroupExist(db *mongo.Database, groupName string) (bool) {
 
 	return true
 }
+
+func CheckGroupExistById(db *mongo.Database, groupId primitive.ObjectID) (bool) {
+	var result primitive.M 
+	resultErr:= db.Collection("groups").FindOne(context.TODO(), bson.M{"_id": groupId}).Decode(&result)
+
+	if resultErr != nil {
+		fmt.Println("result error", resultErr.Error())
+		return false
+	}
+
+	if result["group_name"] == "" {
+		return false
+	}
+
+	return true
+}
