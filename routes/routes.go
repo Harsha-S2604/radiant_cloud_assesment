@@ -29,7 +29,11 @@ func SetupRouter(db *mongo.Database) *gin.Engine {
 
 	groupAPIRouter := router.Group("api/v1")
 	{
+		groupAPIRouter.GET("/groups/:group_name", groupservice.GetGroupUsersHandler(db))
+
 		groupAPIRouter.POST("/groups", groupservice.AddGroupHandler(db))
+
+		groupAPIRouter.PUT("/groups/:group_name", groupservice.UpdateGroupHandler(db))
 
 		groupAPIRouter.DELETE("/groups/:id", groupservice.DeleteGroupHandler(db))
 

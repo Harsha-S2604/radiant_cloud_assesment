@@ -3,7 +3,7 @@ package groupservice
 import (
 	"net/http"
 	"context"
-
+	"log"
 
 	"radiant_cloud_assesment/models"
 	"radiant_cloud_assesment/utilities/validations"
@@ -15,6 +15,40 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 )
+
+func GetGroupUsersHandler(db *mongo.Database) gin.HandlerFunc {
+
+	getGroupUsers := func(ctx *gin.Context) {
+		groupName := ctx.Params.ByName("group_name")
+		if groupName == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "group name is required",
+			})
+			return
+		}
+
+		isGroupExist := misc.CheckGroupExist(db, groupName)
+		if !isGroupExist {
+			ctx.JSON(http.StatusConflict, gin.H{
+				"success": false,
+				"message": "group does not exist",
+			})
+			return
+		}
+
+		var result primitive.M
+		_ = db.Collection("groups").FindOne(context.TODO(), bson.M{"group_name": groupName}).Decode(&result)
+
+		ctx.JSON(http.StatusFound, gin.H{
+			"success": true,
+			"message": "group found",
+			"users": result["users"],
+		})
+	}
+
+	return gin.HandlerFunc(getGroupUsers)
+}
 
 func AddGroupHandler(db *mongo.Database) gin.HandlerFunc {
 
@@ -57,6 +91,96 @@ func AddGroupHandler(db *mongo.Database) gin.HandlerFunc {
 	}
 
 	return gin.HandlerFunc(addGroup)
+}
+
+func UpdateGroupHandler(db *mongo.Database) gin.HandlerFunc {
+
+	updateGroup := func(ctx *gin.Context) {
+		groupName := ctx.Params.ByName("group_name")
+		if groupName == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "group name is required",
+			})
+			return
+		}
+
+		var groupFromDB models.Groups
+		_ = db.Collection("groups").FindOne(context.TODO(), bson.M{"group_name": groupName}).Decode(&groupFromDB)
+		if groupFromDB.GroupName == "" {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"message": "group not found",
+			})
+			return
+		}
+
+		var userIdList models.UserIdList
+		ctx.ShouldBindJSON(&userIdList)
+
+		if len(userIdList.UsersList) == 0 {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "at least one user id is required",
+			})
+			return
+		}
+
+		usersArr := groupFromDB.Users
+		groupUsersMap := make(map[string]int)
+		for i := 0; i < len(usersArr); i++ {
+			groupUsersMap[usersArr[i]]++
+		}
+		
+
+		userListFromReq := userIdList.UsersList
+		var invalidUsers []string
+		for i := 0; i < len(userListFromReq); i++ {
+			if _, ok := groupUsersMap[userListFromReq[i]]; ok {
+				continue
+			} else {
+				isUserExist := misc.CheckUserExistById(db, userListFromReq[i])
+				if isUserExist {
+					usersArr = append(usersArr, userListFromReq[i])
+					groupUsersMap[userListFromReq[i]]++
+					continue
+				}
+				invalidUsers = append(invalidUsers, userListFromReq[i])
+			}
+		}
+
+		updateResult, updateErr := db.Collection("groups").UpdateOne(
+			context.TODO(), bson.M{"group_name": groupName},
+			bson.D{
+				{"$set", bson.D{
+				{"users", usersArr}}},
+			},
+		)
+
+		if updateErr != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Sorry, something went wrong. Please try again later.",
+			})
+			return
+		}
+
+		if !(updateResult.ModifiedCount > 0) {
+			ctx.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"message": "No updates were done",
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "Updated successfully.",
+		})
+
+	}
+
+	return gin.HandlerFunc(updateGroup)
 }
 
 func DeleteGroupHandler(db *mongo.Database) gin.HandlerFunc {
