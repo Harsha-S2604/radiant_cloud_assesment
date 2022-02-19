@@ -1,4 +1,4 @@
-package userservice
+package groupservice
 
 import (
 	"testing"
@@ -13,13 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TestCreateUser(t *testing.T) {
+func TestCreateGroup(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	jsonData, err := json.Marshal(map[string]interface{}{
-		"email": "elliot@gmail.com",
-		"first_name": "elliot",
-		"last_name": "alderson",
-		"userid": "ealderson",
+		"group_name": "developer",
+		"users": []string{"rmike", "djackson"},
 	})
 
 	if err != nil {
@@ -27,7 +25,7 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	database := db.ConnectDB()
-	req, err := http.NewRequest(http.MethodPost, "api/v1/users", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, "api/v1/groups", bytes.NewBuffer(jsonData))
 	if err != nil {
 		t.Fail()
 	}
@@ -36,8 +34,8 @@ func TestCreateUser(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
-	addUser := AddUserHandler(database)
-	addUser(c)
+	addGroup := AddGroupHandler(database)
+	addGroup(c)
 	bodySb, err := ioutil.ReadAll(w.Body)
 	var decodedResponse interface{}
 	err = json.Unmarshal(bodySb, &decodedResponse)
@@ -47,45 +45,23 @@ func TestCreateUser(t *testing.T) {
 
 	expected, actual := 201, w.Code
 	if expected == actual {
-		t.Logf("Create User Success")
+		t.Logf("Create group success")
 	} else {
 		t.Fail()
 	}
 }
 
-func TestGetUserById(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	database := db.ConnectDB()
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Params = []gin.Param{
-		{
-			Key: "id",
-			Value: "ealderson", // change the user id you want
-		},
-	}
-
-	getUserById := GetUserByIdHandler(database)
-	getUserById(c)
-
-	expected, actual := 302, w.Code // change the code according to the user id
-	if expected != actual {
-		t.Errorf("Expected code %d but got %d", expected, actual)
-	}
-
-}
-
-func TestUpdateUser(t *testing.T) {
+func TestUpdateGroup(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	jsonData, err := json.Marshal(map[string]interface{}{
-		"email": "elliot@gmail.com",
+		"users": []string{"troy", "jgyllenhall", "ealderson"},
 	})
 
 	if err != nil {
 		t.Fail()
 	}
 	database := db.ConnectDB()
-	req, err := http.NewRequest(http.MethodPut, "api/v1/users/:id", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPut, "api/v1/groups/:group_name", bytes.NewBuffer(jsonData))
 	if err != nil {
 		t.Fail()
 	}
@@ -96,13 +72,13 @@ func TestUpdateUser(t *testing.T) {
 	c.Request = req
 	c.Params = []gin.Param{
 		{
-			Key: "id",
-			Value: "ealderson", // change the user id you want
+			Key: "group_name",
+			Value: "developer", // change the group name you want
 		},
 	}
 
-	updateUser := UpdateUserHandler(database)
-	updateUser(c)
+	updateGroup := UpdateGroupHandler(database)
+	updateGroup(c)
 	expected, actual := 200, w.Code
 	if expected != actual {
 		t.Errorf("Expected code %d but got %d", expected, actual)
@@ -110,21 +86,42 @@ func TestUpdateUser(t *testing.T) {
 
 }
 
-func TestDeleteUser(t *testing.T) {
+func TestGetGroupUsers(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database := db.ConnectDB()
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Params = []gin.Param{
 		{
-			Key: "id",
-			Value: "ealderson", // change the user id you want
+			Key: "group_name",
+			Value: "developer", // change the group name you want
 		},
 	}
 
-	deleteUser := DeleteUserHandler(database)
-	deleteUser(c)
-	expected, actual := 200, w.Code // change the code according to the user id
+	getGroupUsers := GetGroupUsersHandler(database)
+	getGroupUsers(c)
+
+	expected, actual := 302, w.Code // change the code according to the group name
+	if expected != actual {
+		t.Errorf("Expected code %d but got %d", expected, actual)
+	}
+}
+
+func TestDeleteGroup(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database := db.ConnectDB()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = []gin.Param{
+		{
+			Key: "group_name",
+			Value: "developer", // change the group id you want
+		},
+	}
+
+	deleteGroup := DeleteGroupHandler(database)
+	deleteGroup(c)
+	expected, actual := 200, w.Code // change the code according to the group id
 	if expected != actual {
 		t.Errorf("Expected code %d but got %d", expected, actual)
 	}

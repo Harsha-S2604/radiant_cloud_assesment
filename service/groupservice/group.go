@@ -185,24 +185,16 @@ func UpdateGroupHandler(db *mongo.Database) gin.HandlerFunc {
 func DeleteGroupHandler(db *mongo.Database) gin.HandlerFunc {
 	
 	deleteGroup := func(ctx *gin.Context) {
-		groupId := ctx.Params.ByName("id")
-		if groupId == "" {
+		groupName := ctx.Params.ByName("group_name")
+		if groupName == "" {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"message": "group id is required",
-			})
-			return
-		}
-		objectId, objectIdErr := primitive.ObjectIDFromHex(groupId)
-		if objectIdErr != nil{
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"message": "invaid group id",
+				"message": "group name is required",
 			})
 			return
 		}
 
-		isGroupExist := misc.CheckGroupExistById(db, objectId)
+		isGroupExist := misc.CheckGroupExist(db, groupName)
 		if !isGroupExist {
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"success": false,
@@ -212,7 +204,7 @@ func DeleteGroupHandler(db *mongo.Database) gin.HandlerFunc {
 		}
 
 		res, deleteErr := db.Collection("groups").DeleteOne(context.TODO(), 
-		bson.D{{"_id", objectId}})
+		bson.D{{"group_name", groupName}})
 
 		if deleteErr != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{
