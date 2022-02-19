@@ -224,6 +224,12 @@ func DeleteUserHandler(db *mongo.Database) gin.HandlerFunc {
 			return
 		}
 
+		_, _ = db.Collection("groups").UpdateMany(context.TODO(),
+		bson.M{}, bson.D{
+				{"$pull", bson.D{
+				{"users", userId}}},
+			},
+		)
 
 		ctx.JSON(http.StatusOK, gin.H{
 			"success": true,
